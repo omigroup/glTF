@@ -4,7 +4,11 @@
     "title": "KHR_audio_emitter Audio Data",
     "type": "object",
     "description": "Audio data objects define where audio data is located and what format the data is in. The data is either accessed via a bufferView or uri. `mimeType` is required when `bufferView` is used.",
-    "allOf": [{ "$ref": "glTFChildOfRootProperty.schema.json" }],
+    "allOf": [
+        {
+            "$ref": "glTFChildOfRootProperty.schema.json"
+        }
+    ],
     "properties": {
         "uri": {
             "type": "string",
@@ -15,10 +19,13 @@
         },
         "mimeType": {
             "type": "string",
-            "description": "The audio's MIME type. Required if `bufferView` is defined. Unless specified by another extension, the only supported mimeType is `audio/mpeg`.",
+            "description": "The audio MIME type. Required if bufferView is defined. Unless specified by another extension, the supported mimeTypes are audio/mpeg (MP3) and audio/ogg (Ogg Opus, RFC 7845).",
             "anyOf": [
                 {
                     "const": "audio/mpeg"
+                },
+                {
+                    "const": "audio/ogg"
                 },
                 {
                     "type": "string"
@@ -26,7 +33,11 @@
             ]
         },
         "bufferView": {
-            "allOf": [{ "$ref": "glTFid.schema.json" }],
+            "allOf": [
+                {
+                    "$ref": "glTFid.schema.json"
+                }
+            ],
             "description": "The index of the bufferView that contains the audio data. Use this instead of the audio source's uri property."
         },
         "name": {},
@@ -34,7 +45,20 @@
         "extras": {}
     },
     "dependentRequired": {
-        "bufferView": ["mimeType"]
+        "bufferView": [
+            "mimeType"
+        ]
     },
-    "oneOf": [{ "required": ["uri"] }, { "required": ["bufferView"] }]
+    "oneOf": [
+        {
+            "required": [
+                "uri"
+            ]
+        },
+        {
+            "required": [
+                "bufferView"
+            ]
+        }
+    ]
 }

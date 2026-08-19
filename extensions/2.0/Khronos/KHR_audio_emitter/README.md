@@ -134,7 +134,7 @@ The extension must be added to the file's `extensionsUsed` array and because it 
 
 Audio data objects define where audio data is located and what format the data is in. The data is either accessed via a bufferView or uri.
 
-When storing audio data in a buffer view, the `mimeType` field must be specified. The base specification supports the `audio/mpeg` MIME type. This was chosen with consideration for the wide support for these types across 3D engines and common use cases. Other supported audio formats may be added via extensions.
+When storing audio data in a buffer view, the `mimeType` field must be specified. The base specification supports the `audio/mpeg` (MP3) and `audio/ogg` (Ogg-encapsulated Opus, RFC 7845) MIME types. MP3 was chosen for its universal decode support; Opus for gapless looping and multichannel support — MP3 encoder padding makes seamless loops impossible, so loop-intended audio SHOULD use Opus. Other audio formats may be added via extensions.
 
 Note that in tools that process glTF files, but do not implement the `KHR_audio_emitter` extension, external files referenced via the `uri` field may not be properly copied to their final destination or baked into the final binary glTF file. In these cases, using the `bufferView` property may be a better choice assuming the referenced `bufferView` index is not changed by the tool. The `uri` field might be a better choice when you want to be able to quickly change the referenced audio asset.
 
@@ -144,7 +144,7 @@ The `"bufferView"` property is the integer index of the bufferView that contains
 
 #### MIME Type
 
-The `"mimeType"` property is a string that specifies the audio's MIME type. Required if `bufferView` is defined. Unless specified by another extension, the only supported mimeType is `audio/mpeg`.
+The `"mimeType"` property is a string that specifies the audio's MIME type. Required if `bufferView` is defined. Unless specified by another extension, the supported mimeTypes are `audio/mpeg` (MP3) and `audio/ogg` (Ogg Opus, RFC 7845).
 
 #### URI
 
@@ -161,6 +161,7 @@ Audio sources reference audio data and define playback properties for it. Audio 
 | **gain**         | `number`  | Unitless linear multiplier against original audio file volume used for determining audio source loudness. | 1.0           |
 | **playbackRate** | `number`  | Multiplier for combined pitch and playback speed without resampling.                                      | 1.0           |
 | **loop**         | `boolean` | Whether or not to loop the specified audio when finished.                                                 | false         |
+| **loopCount**    | `integer` | Number of times to loop when `loop` is `true`; `0` means loop indefinitely.                               | 0             |
 | **autoplay**     | `boolean` | Whether or not to play the specified audio when the glTF is loaded.                                       | false         |
 | **audio**        | `number`  | The index of the audio data assigned to this clip.                                                        | No audio      |
 
@@ -180,6 +181,10 @@ For example, a value of `2.0` would double the playback speed of the audio, whic
 
 The `"loop"` property is a boolean that specifies whether or not to loop the specified audio when finished. If `false` or not specified, the audio source does not loop.
 
+#### Loop Count
+
+The `"loopCount"` property is an integer that specifies how many times the audio loops when `loop` is `true`. A value of `0` (default) loops indefinitely. Ignored when `loop` is `false`.
+
 #### Autoplay
 
 The `"autoplay"` property is a boolean that specifies whether or not to play the specified audio when the glTF is loaded. If `false` or not specified, the audio source does not play automatically.
@@ -193,6 +198,12 @@ This value is recommended to be set to a valid index in the "audio" array, or el
 ### Audio Emitter
 
 Audio emitters define how audio sources are played back. Emitter properties are defined at the document level and are references by nodes. Audio may be played globally or positionally. Positional audio has further properties that define how audio volume scales with distance and angle.
+
+**Listener**: positional audio is rendered relative to the listener. Unless overridden by another extension, the listener is the active camera (or, in applications without a glTF camera, the viewer pose): its position and orientation define the point from which spatial audio is heard.
+
+**Channel behavior**: a positional emitter MUST down-mix its input to mono, following the Web Audio API mixing rules, prior to spatialization. A global emitter presents source channels as authored.
+
+**Node scale**: matching `KHR_lights_punctual`, node scale does not affect emitter gain or attenuation; `refDistance` and `maxDistance` are distances in world-space units between the transformed emitter position and the listener.
 
 #### Property Summary
 
@@ -272,7 +283,7 @@ The `"distanceModel"` property is a string that specifies the distance model for
 
 #### Max Distance
 
-The `"maxDistance"` property is a number that defines the maximum distance between the emitter and listener, after which the volume will not be reduced any further. If zero or not specified, the audio emitter does not have a maximum distance, and it can be heard from any distance.
+The `"maxDistance"` property is a number that defines the maximum distance between the emitter and listener, after which the volume will not be reduced any further. If zero or not specified, the audio emitter does not have a maximum distance, and it can be heard from any distance. When `distanceModel` is `"linear"`, `maxDistance` MUST be specified and MUST be greater than `refDistance` (the linear formula divides by their difference).
 
 For the linear distance model, the max distance must be greater than the ref distance. For all distance models, max distance cannot be a negative number.
 
@@ -403,6 +414,9 @@ The following JSON pointers are defined representing mutable properties defined 
 | `/extensions/KHR_audio_emitter/sources/{}/gain`                       | `float`           |
 | `/extensions/KHR_audio_emitter/sources/{}/loop`                       | `bool`            |
 | `/extensions/KHR_audio_emitter/sources/{}/playbackRate`               | `float`           |
+| `/extensions/KHR_audio_emitter/sources/{}/playing`                    | `bool`            |
+
+**`playing` (runtime-only pointer)**: `playing` is not a serialized property; it exists only through the Object Model, enabling event-driven playback from `KHR_interactivity` and `KHR_animation_pointer` without dedicated audio nodes. Writing `true` (re)starts playback of the source on every emitter that references it — a rising edge always restarts from the beginning (`offset` semantics, where defined by other extensions, apply). Writing `false` stops all playing instances of the source. Reading returns `true` while at least one instance is playing. This makes interactive assets (e.g., a playable instrument) expressible today; see the working demonstration linked from KhronosGroup/glTF#2561.
 
 Additionally, the following JSON pointers are defined for read-only properties:
 
