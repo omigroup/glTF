@@ -4,7 +4,11 @@
     "title": "KHR_audio_emitter Audio Source",
     "type": "object",
     "description": "Audio sources reference audio data and define playback properties for it. Audio sources may be used by zero to many audio emitters.",
-    "allOf": [{ "$ref": "glTFChildOfRootProperty.schema.json" }],
+    "allOf": [
+        {
+            "$ref": "glTFChildOfRootProperty.schema.json"
+        }
+    ],
     "properties": {
         "autoplay": {
             "type": "boolean",
@@ -28,11 +32,21 @@
             "default": false
         },
         "audio": {
-            "allOf": [ { "$ref": "glTFid.schema.json" } ],
+            "allOf": [
+                {
+                    "$ref": "glTFid.schema.json"
+                }
+            ],
             "description": "The index of the audio data assigned to this clip."
         },
         "name": {},
         "extensions": {},
-        "extras": {}
+        "extras": {},
+        "loopCount": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Number of times to loop when loop is true; 0 means loop indefinitely. Ignored when loop is false."
+        }
     }
 }
